@@ -7,6 +7,7 @@ import './app.css';
 // TODO 1.1: import socket.io-client
 import io from 'socket.io-client';
 // TODO 1.2: create a new socket connection by invoking "socket.io-client". Convention is to name the returned socket instance "socket".
+// the below uses auto discovery to figure out the port
 const socket = io();
 
 /**
@@ -71,14 +72,32 @@ new Button({
   },
 });
 
-setTimeout(() => {
-  // next tick
-  username = prompt('Enter your username');
-  greet.write(`Hello, ${username}.`);
-});
+// setTimeout(() => {
+//   // next tick
+//   username = prompt('Enter your username');
+//   greet.write(`Hello, ${username}.`);
+// });
 // TODO 2.1: Emit a login event (eg "LOGIN") to the server when the client is connected with the selected username.
 // TODO 2.2: Prevent users from using an existing username (multiple ways to do this, the most elegant would be using an "acknowledgement" when you dispatch the login event)
-// TODO 2.3: Listen for an update user list event (eg "UPDATE_USER_LIST") from server, containing the "users" object with all usernames then update the dom to display this.
+const login = (message = 'Enter your username') => {
+  username = prompt(message);
+  // login from the server will have a new message could suggest using a new username
+  socket.emit('LOGIN', {username}, login);
+};
+socket.on('connect', () => {
+  login();
+  greet.write(`Hello, ${username}.`);
+});
+// TODO 2.3: Listen for an update user list event (eg "UPDATE_USER_LIST") from server, containing the "users" object
+// with all usernames then update the dom to display this.
+const createUser = username => new Message({
+  text: username,
+  mountPoint: userPanel
+});
+socket.on('UPDATE_USER_LIST', ({users}) => {
+  userPanel.clear();
+  Object.keys(users).map(createUser);
+});
 
 // TODO 3.1 Update the user list display from step 2.3 so that it displays buttons, when clicked, draw events will only be dispatched to that user. You will also need to modify the onMove handler from 1.3
 // TODO 3.2 When a user is selected, filter draw events from other users and only display events from the selected user. You will likely need to update the "DRAW_POINTS" listener from 1.4
